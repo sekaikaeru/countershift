@@ -1,0 +1,15 @@
+.godot/
+build/
+*.tmp
+server/.wrangler/
+server/.dev.vars
+server/.prod.vars
+server/.prod.secrets.json
+server/.cf.env
+server/.cf.pin
+server/.cf-home/
+backup-*.sql
+server/data/
+server/node_modules/
+tools/logs/
+.DS_Store

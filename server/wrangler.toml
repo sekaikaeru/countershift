@@ -1,0 +1,52 @@
+# Cloudflare Workers configuration for the COUNTERSHIFT ranking API.
+# Creating the D1 database, setting secrets and deploying are done by the owner, in the order of
+# docs/ONLINE-RANKING.md, chapter "本番公開の手順". Nothing here touches other Workers or databases.
+name = "countershift-ranking"
+main = "src/worker.js"
+compatibility_date = "2025-06-01"
+# false: the Worker has no public address (first deployment, and the emergency stop).
+# true: reachable at https://countershift-ranking.<subdomain>.workers.dev
+workers_dev = true
+# never give single versions their own public address
+preview_urls = false
+
+[[d1_databases]]
+binding = "DB"
+database_name = "countershift-ranking"
+database_id = "f5d2c664-aac5-4e18-971c-0144ad9eeada"
+
+# Per-minute limits (src/api.js RATE; a test checks that the numbers agree).
+# namespace_id: any positive integer, unique in the Cloudflare account.
+[[ratelimits]]
+name = "RL_PLAYER"
+namespace_id = "73101"
+  [ratelimits.simple]
+  limit = 3
+  period = 60
+
+[[ratelimits]]
+name = "RL_PLAY"
+namespace_id = "73102"
+  [ratelimits.simple]
+  limit = 20
+  period = 60
+
+[[ratelimits]]
+name = "RL_SUBMIT"
+namespace_id = "73103"
+  [ratelimits.simple]
+  limit = 6
+  period = 60
+
+[[ratelimits]]
+name = "RL_READ"
+namespace_id = "73104"
+  [ratelimits.simple]
+  limit = 60
+  period = 60
+
+[observability]
+enabled = true
+
+# Secrets (never in this file or in the game): RATE_SALT, VERIFIER_TOKEN, ADMIN_TOKEN
+#   npx wrangler secret put RATE_SALT        (and the other two)

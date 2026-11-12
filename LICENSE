@@ -1,0 +1,23 @@
+COUNTERSHIFT
+Copyright (c) 2026 seka. All rights reserved.
+
+This repository is public because the rules of Game Off 2026 require the source of an entry to be
+public. It is NOT open source software.
+
+You may view the source, and fork the repository on GitHub as GitHub's Terms of Service allow.
+No other permission is granted: you may not use, copy, modify, publish, distribute, sublicense or
+sell this software or any part of it without the prior written permission of the copyright holder.
+
+This notice covers the game's own code, shaders, text and documents in this repository
+(scripts/, shaders/, server/, tools/, docs/, promo/, README.md, project files).
+
+It does not cover the third-party material below, which stays under its own license:
+
+- Godot Engine (the engine the game runs on; not part of this repository, but part of the builds):
+  MIT License. Copyright (c) 2014-present Godot Engine contributors. Copyright (c) 2007-2014 Juan
+  Linietsky, Ariel Manzur. See docs/release/THIRD-PARTY-NOTICES.md for the full text and for the
+  third-party components inside the engine.
+- Noto Sans JP Bold (fonts/NotoSansJP-Bold.otf): Copyright 2014-2021 Adobe (http://www.adobe.com/),
+  with Reserved Font Name 'Source'. SIL Open Font License 1.1. See fonts/NotoSansJP-LICENSE.txt.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND.

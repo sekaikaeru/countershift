@@ -1,0 +1,16 @@
+skill 1.0 seed 1000: steps 16371 score 96280 wave 14 kills 256 swaps 174 hp 0 hash 3245593662
+skill 1.0 seed 1001: steps 19144 score 101600 wave 17 kills 321 swaps 188 hp 0 hash 4273293332
+skill 1.0 seed 1002: steps 14121 score 53570 wave 12 kills 161 swaps 143 hp 0 hash 3236397402
+skill 1.0 seed 1003: steps 15693 score 61090 wave 14 kills 215 swaps 138 hp 0 hash 1719004244
+skill 1.0 seed 1004: steps 13869 score 47690 wave 13 kills 180 swaps 136 hp 0 hash 1668319946
+skill 1.0 seed 1005: steps 11479 score 46260 wave 11 kills 169 swaps 126 hp 0 hash 1375273157
+skill 1.0 seed 1006: steps 15169 score 82740 wave 15 kills 257 swaps 154 hp 0 hash 1683949909
+skill 1.0 seed 1007: steps 10528 score 39130 wave 10 kills 122 swaps 92 hp 0 hash 3771775644
+skill 0.3 seed 1000: steps 5826 score 6650 wave 5 kills 40 swaps 30 hp 0 hash 319931843
+skill 0.3 seed 1001: steps 9460 score 27480 wave 9 kills 99 swaps 42 hp 0 hash 96526241
+skill 0.3 seed 1002: steps 11894 score 36170 wave 11 kills 114 swaps 62 hp 0 hash 2176194470
+skill 0.3 seed 1003: steps 4700 score 1900 wave 4 kills 6 swaps 17 hp 0 hash 547100413
+skill 0.3 seed 1004: steps 9988 score 39570 wave 10 kills 148 swaps 59 hp 0 hash 2904315325
+skill 0.3 seed 1005: steps 8505 score 28460 wave 9 kills 119 swaps 42 hp 0 hash 3723708400
+skill 0.3 seed 1006: steps 2937 score 1840 wave 3 kills 10 swaps 7 hp 0 hash 695452408
+skill 0.3 seed 1007: steps 9264 score 34620 wave 10 kills 149 swaps 51 hp 0 hash 1606566696
