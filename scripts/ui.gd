@@ -550,7 +550,10 @@ func _ranking() -> void:
 
 func _name_modal() -> void:
 	draw_rect(Rect2(0, 0, 1280, 720), Color(INK, 0.8))
-	var panel := Rect2(360, 226, 560, 276)
+	# touch (Web): the HTML field brings its own OK and cancel buttons; they take the place of the
+	# "ENTER / ESC" line, and the window is taller so that they sit clear of the notes above them
+	var tb: bool = main.loc.touch and main.web_name != null
+	var panel := Rect2(360, 226, 560, 336 if tb else 276)
 	draw_rect(panel, Color(0.05, 0.08, 0.15, 0.98))
 	draw_rect(panel, Color(CYAN, 0.6), false, 2.0)
 	txt(T("name_title"), Vector2(640, 284), 26, WHITE, 1, true)
@@ -562,6 +565,7 @@ func _name_modal() -> void:
 	else:
 		txt(T("name_rule"), Vector2(640, 404), 14, DIMC, 1)
 	txt(T("name_privacy"), Vector2(640, 432), 13, Color(DIMC, 0.85), 1)
-	txt(T("name_nav"), Vector2(640, 474), 15, CYAN, 1, true)
+	if not tb:
+		txt(T("name_nav"), Vector2(640, 474), 15, CYAN, 1, true)
 	if record:
 		rects.append([main.name_edit.get_global_rect(), "name field"])

@@ -3,7 +3,7 @@
 // 127.0.0.1:8801 standing in for Workers: the test-only page options are off, the configured API
 // is used whatever the URL says, and the production verifier setup (its own local copy of the
 // build, the API on another origin) verifies runs recorded in that build.
-// Usage: node tools/prodcheck.mjs
+// Usage: node tools/prodcheck.mjs [--build name]
 import { spawn } from "node:child_process";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -12,7 +12,9 @@ import { startVerifier } from "../server/verifier.mjs";
 import { inspectHeader, readReplayHeader } from "../server/src/api.js";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
-const PROD = join(HERE, "..", "build", "web-prod");
+// --build <name>: the folder under build/ to check (default web-prod); a trial name keeps the published build untouched
+const bi = process.argv.indexOf("--build");
+const PROD = join(HERE, "..", "build", bi >= 0 ? process.argv[bi + 1] : "web-prod");
 let total = 0, failed = 0;
 const expect = (what, ok) => { total++; if (!ok) failed++; console.log(`  ${ok ? "ok  " : "FAIL"}  ${what}`); };
 const env = { RATE_SALT: "pc-rate-salt-0123456789abcdef-0123456789a", VERIFIER_TOKEN: "pc-verifier-token-0000001-0123456789abcdef", ADMIN_TOKEN: "pc-admin-token-000000001-0123456789abcdef" };

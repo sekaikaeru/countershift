@@ -117,7 +117,30 @@ const T := {
 	"tip5": ["TIP: Destroying enemies refills the SHIFT gauge.", "ヒント: 敵を倒すと SHIFT ゲージが回復する。"],
 }
 
+## Words for a player who is using the touch controls (scripts/touch.gd sets `touch`). Only the texts that
+## name keys are listed; everything else is shared. "" hides a line whose job a touch button does.
+const TOUCH := {
+	"nav": ["", ""],
+	"rk_nav": ["", ""],
+	"how_back": ["", ""],
+	"r_nav": ["", ""],
+	"rk_retry": ["Tap REFRESH to try again", "「更新」を押して再試行"],
+	"on_need_name": ["Tap NAME to join the ranking", "「名前」を押してランキングに参加"],
+	"on_error": ["Could not send the record.     Tap SEND AGAIN", "記録を送信できませんでした。     「再送信」を押してください"],
+	"why_name": ["the name cannot be used — tap NAME", "名前が使えません。「名前」で変更"],
+	"name_bad_empty": ["Type a name first, then tap OK.", "名前を入力してから OK を押してください。"],
+	"how1_b": ["Left side of the screen:\nslide your thumb (the stick).", "画面の左側で親指をすべらせる\n（スティック）。"],
+	"how2_h": ["HOLD RIGHT", "右側を押し続ける"],
+	"how2_b": ["Time slows while you hold\nthe right side of the screen.\nAim with the stick.", "画面の右側を押している間、\n時間がゆっくりになる。\nスティックで敵をねらう。"],
+	"how3_h": ["RELEASE", "指をはなす"],
+	"how_note": ["Next enemy further away: let the stick return to the centre, then push the same way again.", "その先の敵をねらう: スティックを中央に戻して、同じ方向へ倒し直す。"],
+	"hint1": ["HOLD the RIGHT side of the screen — time slows", "画面の右側を押し続ける — 時間がゆっくりになる"],
+	"hint2": ["AIM with the left stick, then LIFT your right thumb to trade places", "左のスティックでねらい、右の指をはなすと入れ替わる"],
+	"tip4": ["TIP: Centre the stick, then push the same way again to aim at the next enemy.", "ヒント: スティックを中央に戻して同じ方向へ倒し直すと、その先の敵をねらえる。"],
+}
+
 var lang := "en"
+var touch := false           # true while the player is using the touch controls
 
 
 func set_lang(code: String) -> void:
@@ -129,6 +152,8 @@ func next_lang() -> void:
 
 
 func t(key: String) -> String:
+	if touch and TOUCH.has(key):
+		return TOUCH[key][LANGS.find(lang)]
 	if not T.has(key):
 		return key
 	return T[key][LANGS.find(lang)]

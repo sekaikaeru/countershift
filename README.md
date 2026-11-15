@@ -12,8 +12,9 @@ Godot 4.7.2（GL Compatibility）。画像・音声ファイルは使ってい�
 
 ## 遊ぶ / Play
 
-- **Web 版（itch.io）**: <https://useseka.itch.io/countershift> — ブラウザーでそのまま遊べる。キーボード専用。
-  Play in the browser on itch.io (keyboard only).
+- **Web 版（itch.io）**: <https://useseka.itch.io/countershift> — ブラウザーでそのまま遊べる。パソコン（キーボード）と
+  スマホ・タブレット（タッチ、横向き）の両方に対応。
+  Play in the browser on itch.io: on a computer (keyboard) or on a phone or tablet (touch, landscape).
 - **ソースコード / Source**: <https://github.com/sekaikaeru/countershift>（公開しているが、オープンソースではない。下の「ライセンス」を参照）
 - **Game Off 2026** 提出作品（テーマ: SHIFT）。Made for Game Off 2026.
 - 手元で動かす: Godot 4.7 で `project.godot` を開いて実行する。Web 版を自分で書き出す場合は下の「確認用コマンド」。
@@ -57,6 +58,28 @@ node server/dev.mjs
 
 Windows では SHIFT を 5 回続けて押すと「固定キー」の確認が出ることがある。その場合は SPACE を使う。
 
+### スマホ・タブレット / Touch
+
+画面にふれるとタッチ操作になり、説明文もタッチ用に切り替わる。キーボードを押すとキーボード操作に戻る。
+規則・スコア・ランキングはキーボードと同じ（指の動きは、キーボードと同じキー入力としてゲームに渡される）。
+
+| 操作 | 動作 |
+|---|---|
+| 画面の左側で親指をすべらせる | スティック（8 方向）。移動と、ねらう方向 |
+| 画面の右側を押し続ける | 時間がゆっくりになり、敵をねらう |
+| 右の指をはなす | ねらった敵と位置を入れ替える |
+| スティックを中央に戻して、同じ方向へ倒し直す | その方向の、次に遠い敵をねらう |
+| 画面上部の一時停止ボタン | 一時停止 |
+| 画面のボタン（決定・もどる・ランキング・名前 など） | メニュー、リザルト、ランキング、名前入力 |
+
+横向きで遊ぶ。縦向きにすると一時停止し、横向きにするよう案内が出る。
+
+Touch the screen and the game switches to touch controls (and touch wording); press a key and it switches back.
+Left thumb: a floating 8-way stick (move and aim). Right side: hold to slow time and aim, release to trade places.
+To aim at an enemy further away, let the stick return to the centre and push the same way again. Menus, results,
+the ranking and the name window have on-screen buttons. Play in landscape; holding the phone upright pauses the game.
+Rules, scores and the ranking are the same as with a keyboard: fingers are turned into the same key presses.
+
 ## 構成
 
 | 場所 | 内容 |
@@ -67,6 +90,8 @@ Windows では SHIFT を 5 回続けて押すと「固定キー」の確認が�
 | `scripts/ui.gd` | タイトル・あそびかた・HUD・一時停止・リザルト |
 | `scripts/audio.gd` | 効果音と音楽の合成（4 トラックを同期再生し、戦況で混ぜ方を変える） |
 | `scripts/replay.gd` | 入力リプレイの記録と再計算（ランキングの検証に使う） |
+| `scripts/touch.gd` | タッチ操作（指の動きをキー入力に変える。規則には関わらない） |
+| `scripts/web_name.gd` | Web 版の名前入力欄（日本語入力、タッチ用の OK・取り消しボタン） |
 | `scripts/online.gd` | ランキング API との通信（すべて非同期。失敗してもゲームは止まらない） |
 | `server/` | ランキング API（Cloudflare Workers + D1 用）、ローカル実行、検証役、管理コマンド、テスト |
 | `scripts/loc.gd` | 日本語・英語の文言。列を足せば言語を追加できる |

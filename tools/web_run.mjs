@@ -27,6 +27,7 @@ const proc = spawn(chrome, ["--headless=new", `--remote-debugging-port=${port}`,
   `--window-size=${size}`, "--hide-scrollbars", "--force-device-scale-factor=1", "about:blank"], { stdio: "ignore" });
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 let done = false;
+const sentAt = new Map();
 const finish = async (code) => { if (done) return; done = true; try { proc.kill(); } catch {} await sleep(300); if (!keep) { try { rmSync(profile, { recursive: true, force: true }); } catch {} } process.exit(code); };
 
 let target = null;
@@ -50,8 +51,10 @@ ws.onmessage = (m) => {
     if (until2 && until2.test(text)) matched2 = true;
   } else if (netHost && d.method === "Network.responseReceived" && d.params.response.url.includes(netHost)) {
     console.log(`NET ${d.params.response.status} ${new URL(d.params.response.url).pathname}`);
-  } else if (netHost && d.method === "Network.loadingFailed" && !d.params.canceled) {
-    console.log(`NET failed ${d.params.errorText}`);
+  } else if (netHost && d.method === "Network.requestWillBeSent" && d.params.request.url.includes(netHost) && d.params.request.method === "POST") {
+    sentAt.set(d.params.requestId, new URL(d.params.request.url).pathname);       // POSTs only: to name the one that fails
+  } else if (netHost && d.method === "Network.loadingFailed" && (!d.params.canceled || sentAt.has(d.params.requestId))) {
+    console.log(`NET failed ${d.params.errorText}${d.params.canceled ? " (cancelled)" : ""}${sentAt.has(d.params.requestId) ? " POST " + sentAt.get(d.params.requestId) : ""}`);
   } else if (d.method === "Runtime.exceptionThrown") {
     console.log("PAGE EXCEPTION: " + (d.params.exceptionDetails.exception?.description || d.params.exceptionDetails.text));
   }

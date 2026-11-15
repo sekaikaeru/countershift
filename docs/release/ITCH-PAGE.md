@@ -14,6 +14,7 @@
 | Genre | Action |
 | Tags | arcade, score-attack, 2d, singleplayer, keyboard, minimalist, leaderboard, godot, game-off |
 | Embed size | 1280 × 720、フルスクリーンボタンあり |
+| Mobile friendly | ON、Orientation は Landscape |
 | Upload | 公開用 Web ビルドの ZIP（`tools/build_web.sh` の出力。「This file will be played in the browser」） |
 | AI generation disclosure | 「AI を使った」を選ぶ。対象: Code、Sound / Music、Text。Graphics は画像生成ではないが、描画コードを AI が書いたため、欄があれば申告する（下の 4 を参照） |
 
@@ -48,6 +49,10 @@ An enemy destroyed this way explodes, and the blast spreads to the enemies aroun
 | F11 (F in menus) | Fullscreen |
 
 Click the game once so it receives the keyboard.
+
+**Phone or tablet (landscape):** slide your left thumb anywhere on the left side to move and aim (a floating stick),
+hold the right side to slow time, release to trade places. To aim at an enemy further away, let the stick return to
+the centre and push the same way again. Menus and the ranking have on-screen buttons.
 On Windows, pressing SHIFT five times in a row may bring up the "Sticky Keys" prompt. Use SPACE instead.
 
 ### About the world ranking
@@ -93,6 +98,10 @@ What is sent: the name you typed, and the record of your run (inputs, score, wav
 | F11（メニューでは F も） | フルスクリーン |
 
 最初にゲーム画面を 1 回クリックすると、キーボードが効くようになります。
+
+**スマホ・タブレット（横向き）:** 画面の左側で親指をすべらせると移動とねらい（スティック）、右側を押し続けると
+時間がゆっくりになり、指をはなすと入れ替わります。その先の敵をねらうには、スティックを中央に戻して、同じ方向へ
+倒し直します。メニューとランキングは画面のボタンで操作できます。
 Windows では SHIFT を 5 回続けて押すと「固定キー」の確認が出ることがあります。その場合は SPACE を使ってください。
 
 ### 世界ランキングについて

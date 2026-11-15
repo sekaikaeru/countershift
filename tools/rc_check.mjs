@@ -1,21 +1,27 @@
 #!/usr/bin/env node
-// Release-candidate check on a local mock API. It serves build/web-rc1-local (the candidate's twin:
+// Release-candidate check on a local mock API. It serves build/web-rc-local (the candidate's twin:
 // same sources and export preset, API address = this mock) on 127.0.0.1:8784 and
 //   1. reads the build's fingerprint and two behaviour fingerprints in Chrome,
 //   2. plays a run through real key presses only (a production build has no test options):
 //      START, Shift taps until the shields are gone, the name typed through an IME composition,
 //      Enter, then waits for the local verifier and opens the ranking.
-// Nothing here talks to the production API.  Usage: node tools/rc_check.mjs [--shots dir]
+// Nothing here talks to the production API.  Usage: node tools/rc_check.mjs [--shots dir] [--build name] [--verifier-build dir] [--no-resend]
+// --no-resend: do not press S after the send (to measure how often a send gets no answer on the local server)
 import { spawn } from "node:child_process";
+import { mkdirSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { startServer } from "../server/dev.mjs";
 import { startVerifier } from "../server/verifier.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
-const BUILD_DIR = join(HERE, "..", "build", "web-rc1-local");
+const opt = (k) => { const i = process.argv.indexOf("--" + k); return i >= 0 ? process.argv[i + 1] : ""; };
+const BUILD_DIR = join(HERE, "..", "build", opt("build") || "web-rc-local");     // --build <name under build/>
+// --verifier-build <dir>: another build does the verifying (for example a copy of the published one)
+const VERIFIER_DIR = opt("verifier-build") || BUILD_DIR;
 const si = process.argv.indexOf("--shots");
 const shots = si >= 0 ? process.argv[si + 1] : "";
+if (shots) mkdirSync(shots, { recursive: true });        // (a missing folder used to break the key sequence at the first screenshot)
 const env = { RATE_SALT: "rc-check-rate-salt-0123456789abcdef-012345", VERIFIER_TOKEN: "rc-check-verifier-token-0123456789abcdef-01", ADMIN_TOKEN: "rc-check-admin-token-0123456789abcdef-0123" };
 let total = 0, failed = 0;
 const expect = (what, ok) => { total++; if (!ok) failed++; console.log(`  ${ok ? "ok  " : "FAIL"}  ${what}`); };
@@ -39,23 +45,43 @@ expect("test options are off in this build (?diag=1 shows no diagnostic lines)",
 
 console.log("2. local verifier on the same build");
 let ready = "";
-const v = await startVerifier({ buildDir: BUILD_DIR, api: s.url, token: env.VERIFIER_TOKEN, poll: 1, log: (m) => { if (m.includes("READY")) ready = m; if (m.includes("VERIFIED")) console.log("    " + m); } });
+if (VERIFIER_DIR !== BUILD_DIR) console.log("    verifier runs a different build: " + VERIFIER_DIR);
+const v = await startVerifier({ buildDir: VERIFIER_DIR, api: s.url, token: env.VERIFIER_TOKEN, poll: 1, log: (m) => { if (m.includes("READY")) ready = m; if (m.includes("VERIFIED")) console.log("    " + m); } });
 await v.whenReady;
 console.log("    " + ready);
 expect("verifier and build agree on the fingerprint", ready.includes(`fp ${fp}`) && ready.includes("build 3"));
 
 console.log("3. a run by key presses only: START, Shift taps, name through an IME composition, Enter");
+// The blind Shift taps sometimes end a run with no score at all. Such a run is not sent and no name is asked:
+// that is how the game is meant to work, not a failure. So the page reports whether the name window opened;
+// if it did not, the attempt is set aside and another page plays again (5 attempts at most).
+const probe = (word, js) => "js:" + encodeURIComponent(`console.log('${word} ' + (${js}))`).replace(/,/g, "%2C");
 const taps = [];
 for (let i = 0; i < 230; i++) taps.push("Shift", "wait330");
-const keys = ["Enter", "wait2500", ...taps, "wait4500",
-  ...(shots ? [`shot:${shots}/rc_1_name_window.png`] : []),
-  "compose:こうほ", "RealEnter", "wait300", "ime:こうほ>候補太郎", "wait300",
-  ...(shots ? [`shot:${shots}/rc_2_name_typed.png`] : []),
-  "RealEnter", "wait14000",
-  ...(shots ? [`shot:${shots}/rc_3_result.png`] : []),
-  "Tab", "wait3500",
-  ...(shots ? [`shot:${shots}/rc_4_ranking.png`] : [])];
-const run = await page("?lang=ja", ["--net", "/v1/", "--wait", "9", "--keys", keys.join(","), "--timeout", "260"]);
+let run = [], opened = false, attempts = 0, noScore = 0;
+while (!opened && attempts < 5) {
+  attempts++;
+  const sh = (n) => (shots ? [`shot:${shots}/rc_${n}${attempts > 1 ? "_try" + attempts : ""}.png`] : []);
+  const keys = ["Enter", "wait2500", ...taps, "wait4500",
+    probe("NAMEWIN", "!!(window.__csName && window.__csName.open)"),
+    probe("TOUCHBAR", "(function(){var b=document.querySelector('button');return b?getComputedStyle(b.parentNode).display+'/'+window.__csName.coarse:'none/false'})()"),
+    ...sh("1_name_window"),
+    "compose:こうほ", "RealEnter", "wait300", "ime:こうほ>候補太郎", "wait300",
+    probe("STILLOPEN", "!!(window.__csName && window.__csName.open)"),
+    ...sh("2_name_typed"),
+    // If the send got no answer (seen once: the local test server had just closed the idle connection the
+    // browser reused), the game says "could not send, S: send again". S does that, and nothing otherwise.
+    "RealEnter", "wait7000", ...sh("3a_after_send"), ...(process.argv.includes("--no-resend") ? [] : ["s"]), "wait9000",
+    ...sh("3_result"),
+    "Tab", "wait3500",
+    ...sh("4_ranking")];
+  run = await page("?lang=ja", ["--net", "/v1/", "--wait", "9", "--keys", keys.join(","), "--timeout", "260"]);
+  opened = run.some((l) => l.trim() === "NAMEWIN true");
+  if (!opened) { noScore++; console.log(`    attempt ${attempts}: the run ended without a score, so nothing was sent and no name was asked (as designed); playing again`); }
+}
+expect(`a run with a score was played within 5 attempts (${attempts} played, ${noScore} without a score)`, opened);
+expect("keyboard player: the name window has no touch buttons", run.some((l) => l.trim() === "TOUCHBAR none/false"));
+expect("the Enter that confirms the IME conversion does not decide the name (the window stays open)", run.some((l) => l.trim() === "STILLOPEN true"));
 const net = {};
 for (const l of run.filter((x) => x.startsWith("NET "))) net[l] = (net[l] || 0) + 1;
 console.log("    API calls seen by the browser: " + Object.entries(net).map(([k, n]) => `${k.slice(4)} x${n}`).join(", "));

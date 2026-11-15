@@ -31,6 +31,7 @@ var rec := PackedByteArray()      # input replay of the current ranked run
 var rec_on := false
 var name_edit: LineEdit
 var name_open := false
+const NAME_BAR_Y := 452.0     # top of the HTML OK / cancel buttons of the name window (touch), in game units
 var name_error_t := 0.0
 var name_error := ""          # why the last name was refused: "", empty, long, chars
 var name_ready := false       # the field has taken the focus after opening
@@ -42,6 +43,7 @@ var last_online := ""
 var name_debug_last := ""
 var web_name: Node = null     # Web: the name is typed into a real HTML input (scripts/web_name.gd)
 var diag: Control = null       # temporary diagnostic overlay (development builds, ?diag=1)
+var touch: Control = null      # touch controls: fingers become the same key presses a keyboard sends (scripts/touch.gd)
 var last_board := "idle"
 var bg_mat: ShaderMaterial
 var post_mat: ShaderMaterial
@@ -173,6 +175,11 @@ func _ready() -> void:
 		diag.main = self
 		diag.font = font
 		ui_layer.add_child(diag)
+
+	touch = load("res://scripts/touch.gd").new()
+	touch.main = self
+	touch.font = font
+	ui_layer.add_child(touch)
 
 	audio = AudioKit.new()
 	add_child(audio)
@@ -553,7 +560,9 @@ func _process(delta: float) -> void:
 		var xf: Transform2D = name_edit.get_viewport().get_final_transform() * name_edit.get_global_transform_with_canvas()
 		var p0: Vector2 = xf * Vector2.ZERO
 		var p1: Vector2 = xf * name_edit.size
-		web_name.place(Rect2(p0, p1 - p0), 28.0 * (p1.y - p0.y) / name_edit.size.y, name_error != "")
+		var sy: float = (p1.y - p0.y) / name_edit.size.y
+		# the touch buttons go under the notes: NAME_BAR_Y in game units, here in the canvas's pixels
+		web_name.place(Rect2(p0, p1 - p0), 28.0 * sy, name_error != "", p0.y + (NAME_BAR_Y - name_edit.global_position.y) * sy)
 	elif name_open and name_ready and not (name_edit.has_focus() and name_edit.is_editing()):
 		# a click elsewhere or the browser took the focus away: typing must keep going to the field
 		name_edit.grab_focus()
@@ -728,84 +737,96 @@ func _ui_check() -> void:
 	var total := 0
 	ui.record = true
 	opts["auto"] = "uicheck"
-	for lang in Loc.LANGS:
-		loc.set_lang(lang)
-		for screen in ["title", "howto", "play", "pause", "result", "ranking", "ranking_empty", "name"]:
-			match screen:
-				"title":
-					best = 1234567
-					_to_title()
-				"howto":
-					_set_state(S.HOWTO)
-				"play":
-					_start_run()
-					autoplay = true
-					best = 1234567
-				"pause":
-					_pause()
-				"result":
-					result = {"score": 1234567, "best": 1234567, "record": false, "wave": 38, "time": 1234.0, "kills": 2345,
-						"shift_kills": 678, "max_chain": 144, "best_burst": 43, "rank": "S", "rank_i": 4, "next": 110000, "tip": 0}
-					_set_state(S.RESULT)
-				"ranking", "ranking_empty":
-					_close_name()
-					_set_state(S.RANKING)
-					online.enabled = true
-					online.board = []
-					online.me = {}
-					online.pending = 0
-					if screen == "ranking":
-						for i in 100:
-							online.board.append({"rank": i + 1, "name": ["ＷＷＷＷＷＷＷＷＷＷＷＷ", "WWWWWWWWWWWW", "鬱鬱鬱鬱鬱鬱鬱鬱鬱鬱鬱鬱"][i % 3], "score": 2000000000 - i, "wave": 99999, "at": 1794300000000, "me": i == 4})
-						online.me = {"rank": 123456, "score": 2000000000, "wave": 99999, "at": 1794300000000, "name": "x"}
-						online.pending = 1
-					online.player_name = "ＷＷＷＷＷＷＷＷＷＷＷＷ" if screen == "ranking" else ""
-					online.board_total = 1234567
-					online.board_time = "23:59"
-					online.board_loaded_at = -100.0
-				"name":
-					_set_state(S.RESULT)
-					_open_name()
-			var variants := 10 if screen == "result" else (4 if screen == "play" else (4 if screen.begins_with("ranking") else (4 if screen == "name" else 1)))
-			for v in variants:
-				if screen == "result":
-					result["tip"] = v % 7
-					result["record"] = v % 2 == 1
-					state_t = 10.0
-					online.best_score = 2000000000
-					online.sub = [{"state": "none"}, {"state": "unranked"}, {"state": "need_name"}, {"state": "sending"},
-						{"state": "verifying", "rank": 123456}, {"state": "queued"}, {"state": "verified", "rank": 123456},
-						{"state": "not_best"}, {"state": "error"}, {"state": "rejected", "reason": "bad_name"}][v]
-				if screen.begins_with("ranking"):
-					online.board_state = ["ok", "loading", "error", "ok"][v]
-					online.enabled = v != 3 or screen == "ranking"
-					rank_scroll = [0.0, 44.0, 88.0, 3.5][v]
-				if screen == "name":
-					name_error = ["", "empty", "long", "chars"][v]
-					name_edit.text = "ＷＷＷＷＷＷＷＷＷＷＷＷ"
-				if screen == "play":
-					hint = "hint%d" % (v + 1)
-					hint_t = 1.0
-					sim.chain = 144
-					sim.mult = 9
-					sim.chain_t = 3.0
-					sim.score = 1234567
-					shown_score = 1234567
-					_banner("%s %d" % [loc.t("wave"), 38] if v % 2 == 0 else loc.t("wave_clear"), 64, Color(1, 1, 1), 99.0)
-				for f in 3:
+	# once as a keyboard player sees it, then with the touch wording and buttons at several finger sizes
+	# (game units per CSS pixel: a tablet, phones, the largest the layer allows)
+	var over := 0
+	for fingers in [0.0, 1.08, 1.75, 1.85, 2.0, 3.0]:
+		loc.touch = fingers > 0.0
+		touch.active = fingers > 0.0
+		touch.force_upc = fingers
+		for lang in Loc.LANGS:
+			loc.set_lang(lang)
+			for screen in ["title", "howto", "play", "pause", "result", "ranking", "ranking_empty", "name"]:
+				match screen:
+					"title":
+						best = 1234567
+						_to_title()
+					"howto":
+						_set_state(S.HOWTO)
+					"play":
+						_start_run()
+						autoplay = true
+						best = 1234567
+					"pause":
+						_pause()
+					"result":
+						result = {"score": 1234567, "best": 1234567, "record": false, "wave": 38, "time": 1234.0, "kills": 2345,
+							"shift_kills": 678, "max_chain": 144, "best_burst": 43, "rank": "S", "rank_i": 4, "next": 110000, "tip": 0}
+						_set_state(S.RESULT)
+					"ranking", "ranking_empty":
+						_close_name()
+						_set_state(S.RANKING)
+						online.enabled = true
+						online.board = []
+						online.me = {}
+						online.pending = 0
+						if screen == "ranking":
+							for i in 100:
+								online.board.append({"rank": i + 1, "name": ["ＷＷＷＷＷＷＷＷＷＷＷＷ", "WWWWWWWWWWWW", "鬱鬱鬱鬱鬱鬱鬱鬱鬱鬱鬱鬱"][i % 3], "score": 2000000000 - i, "wave": 99999, "at": 1794300000000, "me": i == 4})
+							online.me = {"rank": 123456, "score": 2000000000, "wave": 99999, "at": 1794300000000, "name": "x"}
+							online.pending = 1
+						online.player_name = "ＷＷＷＷＷＷＷＷＷＷＷＷ" if screen == "ranking" else ""
+						online.board_total = 1234567
+						online.board_time = "23:59"
+						online.board_loaded_at = -100.0
+					"name":
+						_set_state(S.RESULT)
+						_open_name()
+				var variants := 10 if screen == "result" else (4 if screen == "play" else (4 if screen.begins_with("ranking") else (4 if screen == "name" else 1)))
+				for v in variants:
+					if screen == "result":
+						result["tip"] = v % 7
+						result["record"] = v % 2 == 1
+						state_t = 10.0
+						online.best_score = 2000000000
+						online.sub = [{"state": "none"}, {"state": "unranked"}, {"state": "need_name"}, {"state": "sending"},
+							{"state": "verifying", "rank": 123456}, {"state": "queued"}, {"state": "verified", "rank": 123456},
+							{"state": "not_best"}, {"state": "error"}, {"state": "rejected", "reason": "bad_name"}][v]
+					if screen.begins_with("ranking"):
+						online.board_state = ["ok", "loading", "error", "ok"][v]
+						online.enabled = v != 3 or screen == "ranking"
+						rank_scroll = [0.0, 44.0, 88.0, 3.5][v]
+					if screen == "name":
+						name_error = ["", "empty", "long", "chars"][v]
+						name_edit.text = "ＷＷＷＷＷＷＷＷＷＷＷＷ"
 					if screen == "play":
 						hint = "hint%d" % (v + 1)
 						hint_t = 1.0
-					if screen == "result":
-						state_t = 10.0
-					await get_tree().process_frame
-				for r in ui.rects:
-					total += 1
-					if not frame.encloses(r[0]):
-						bad += 1
-						print("  OUTSIDE [%s/%s] %s  %s" % [lang, screen, str(r[0]), r[1]])
+						sim.chain = 144
+						sim.mult = 9
+						sim.chain_t = 3.0
+						sim.score = 1234567
+						shown_score = 1234567
+						_banner("%s %d" % [loc.t("wave"), 38] if v % 2 == 0 else loc.t("wave_clear"), 64, Color(1, 1, 1), 99.0)
+					for f in 3:
+						if screen == "play":
+							hint = "hint%d" % (v + 1)
+							hint_t = 1.0
+						if screen == "result":
+							state_t = 10.0
+						await get_tree().process_frame
+					for r in ui.rects:
+						total += 1
+						if not frame.encloses(r[0]):
+							bad += 1
+							print("  OUTSIDE [%s/%s] %s  %s" % [lang, screen, str(r[0]), r[1]])
+						if fingers > 0.0 and r[1] != "" and r[0].size.x > 0.0:
+							for tb in touch.buttons:
+								if tb["rect"].intersects(r[0]):
+									over += 1
+									print("  UNDER A TOUCH BUTTON [%s/%s/%.2f] %s  %s" % [lang, screen, fingers, str(r[0]), r[1]])
 	_close_name()
-	print("ui check: %d text blocks, %d outside the 1280x720 frame" % [total, bad])
+	print("ui check: %d text blocks, %d outside the 1280x720 frame, %d under a touch button" % [total, bad, over])
 	get_tree().quit()
 
 
@@ -1022,7 +1043,7 @@ func _open_name() -> void:
 	if not name_open:
 		return
 	if web_name != null:
-		web_name.show_field(online.player_name)
+		web_name.show_field(online.player_name, loc.touch)
 	else:
 		name_edit.text = online.player_name
 		name_edit.grab_focus()
